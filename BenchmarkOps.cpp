@@ -14,26 +14,17 @@ BenchmarkOps::BenchmarkOps() {
 
     std::ostringstream oss;
 
+    long logp = 30; ///< Scaling Factor (larger logp will give you more accurate value)
+    long logn = 10; ///< number of slot is 1024 (this value should be < logN in "src/Params.h")
+    long logq = 300; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
+    long n = 1 << logn;
+    long numThread = 2;
+
     oss << std::put_time(&tm, "%Y-%m-%d %H-%M-%S");
     string folder_name = oss.str();
     auto dtpkc_file_name = "dtpkc.txt";
     auto fhe_file_name = "fhe.txt";
-
-    auto path = "../LOGS/MICRO_BENCH/" + folder_name + "/";
-
-    ofstream dtpkc_log_file;
-    ofstream fhe_log_file;
-
-    if (mkdir(path.c_str(), 0777) == -1)
-        cerr << "Error :  " << strerror(errno) << endl;
-    else
-        cout << "Directory created";
-
-    cout << "Creating " << path + dtpkc_file_name << endl;
-    dtpkc_log_file.open(path + dtpkc_file_name);
-    fhe_log_file.open(path + fhe_file_name);
-
-    dtpkc_log_file << "encryption, addition, decryption, batch_encryption, batch_addition, batch_decryption" << endl;
+    auto config_file_name = "config.txt";
 
     BENCHBuildingBlocks benchBuildingBlocks;
     int keysizes[1] = {1024};
@@ -45,6 +36,43 @@ BenchmarkOps::BenchmarkOps() {
     std::vector<long> v;
     int nb_slots = benchBuildingBlocks.dtpkc.nb_slots;
     int slot_size = benchBuildingBlocks.dtpkc.digits_per_slot;
+
+    auto path = "../LOGS/MICRO_BENCH/" + folder_name + "/";
+
+    ofstream dtpkc_log_file;
+    ofstream fhe_log_file;
+    ofstream config_log_file;
+
+    if (mkdir(path.c_str(), 0777) == -1)
+        cerr << "Error :  " << strerror(errno) << endl;
+    else
+        cout << "Directory created";
+
+    cout << "Creating " << path + dtpkc_file_name << endl;
+    dtpkc_log_file.open(path + dtpkc_file_name);
+    fhe_log_file.open(path + fhe_file_name);
+    config_log_file.open(path + config_file_name);
+
+
+    config_log_file << " -------------------------- FHE -----------------------------" << endl;
+    config_log_file << "slots = " << n << endl;
+    config_log_file << "logp = " << logp << endl;
+    config_log_file << "logq = " << logq << endl;
+    config_log_file << "logN = " << logN << endl;
+    config_log_file << "logQ = " << logQ << endl;
+
+    config_log_file << " -------------------------- DTPKC -----------------------------" << endl;
+    config_log_file << "key_size = " << 1024 << endl;
+    config_log_file << "nb_slots" << nb_slots << endl;
+    config_log_file << "slot_size" << slot_size << endl;
+
+    config_log_file.close();
+
+
+    dtpkc_log_file << "encryption, addition, decryption, batch_encryption, batch_addition, batch_decryption" << endl;
+    fhe_log_file << "encryption, cst_addition, addition, subtraction, cst_multiplication, multiplication, left_rotation, right_rotation, decryption" << endl;
+
+
 
     for (int i = 0; i < nb_slots; ++i) {
         v.push_back(i * 111111111);
@@ -108,11 +136,7 @@ BenchmarkOps::BenchmarkOps() {
         //benchBuildingBlocks.dtpkc.serializeDtpkc();
     }
 
-    long logp = 30; ///< Scaling Factor (larger logp will give you more accurate value)
-    long logn = 10; ///< number of slot is 1024 (this value should be < logN in "src/Params.h")
-    long logq = 300; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
-    long n = 1 << logn;
-    long numThread = 2;
+
 
     // Construct and Generate Public Keys //
     srand(time(NULL));
@@ -147,6 +171,8 @@ BenchmarkOps::BenchmarkOps() {
     auto duration = duration_cast<microseconds>(end - start).count();
 
     cout << "FHE encryption duration: " << duration / (1000 * 2) << "ms." << endl;
+
+    auto encryption_duration = duration / 2.0;
 
     SerializationUtils serializationUtils;
 
@@ -185,9 +211,12 @@ BenchmarkOps::BenchmarkOps() {
     for (int i = 0; i < k; i++) {
         scheme.add(cipherAdd, cipher1, cipher2);
     }
+
     end = high_resolution_clock::now();
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE addition duration: " << duration / (1000 * k) << "ms." << endl;
+
+    auto addition_duration = duration / k;
 
     Ciphertext cipherConstAdd;
     start = high_resolution_clock::now();
@@ -199,6 +228,16 @@ BenchmarkOps::BenchmarkOps() {
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE Constant addition duration: " << duration / (1000 * k) << "ms." << endl;
 
+    auto cst_addition_duration = duration / k;
+
+    start = high_resolution_clock::now();
+    Ciphertext cipherSub;
+    for (int i = 0; i < k; i++) {
+        scheme.sub(cipherSub, cipher1, cipher2);
+    }
+    end = high_resolution_clock::now();
+    duration = duration_cast<microseconds>(end - start).count();
+    auto subtraction_duration = duration / k;
 
     Ciphertext cipherConstMul;
     scheme.encrypt(cipherAdd, mvec2, n, logp, logq);
@@ -212,7 +251,7 @@ BenchmarkOps::BenchmarkOps() {
     end = high_resolution_clock::now();
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE const multiplication duration: " << duration / (1000 * iter) << "ms." << endl;
-
+    auto cst_multiplication_duration = duration / iter;
 
     Ciphertext cipherMul;
     start = high_resolution_clock::now();
@@ -224,7 +263,7 @@ BenchmarkOps::BenchmarkOps() {
 
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE multiplication duration: " << duration / (1000 *iter) << "ms." << endl;
-
+    auto multiplication_duration = duration / iter;
 
     Ciphertext cipherLeftRot;
 
@@ -236,6 +275,7 @@ BenchmarkOps::BenchmarkOps() {
 
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE Left rotate duration: " << duration / (1000 *iter) << "ms." << endl;
+    auto left_rotation_duration = duration / iter;
 
     Ciphertext cipherRightRot;
 
@@ -247,6 +287,7 @@ BenchmarkOps::BenchmarkOps() {
 
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE Right rotate duration: " << duration / (1000 *iter) << "ms." << endl;
+    auto right_rotation_duration = duration / iter;
 
 
     start = high_resolution_clock::now();
@@ -257,6 +298,12 @@ BenchmarkOps::BenchmarkOps() {
 
     duration = duration_cast<microseconds>(end - start).count();
     cout << "FHE Decrypt duration: " << duration / (1000 *iter) << "ms." << endl;
+    auto decryption_duration = duration / iter;
+
+
+    fhe_log_file << encryption_duration << ", " << cst_addition_duration << ", " << addition_duration << ", " <<
+    subtraction_duration << ", " << cst_multiplication_duration << ", " << multiplication_duration << ", " <<
+    left_rotation_duration << ", " << right_rotation_duration << ", " << decryption_duration << endl;
 
 
     complex<double> *dvecAdd = scheme.decrypt(secretKey, cipherAdd);

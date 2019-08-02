@@ -1,0 +1,2 @@
+encryption, cst_addition, addition, subtraction, cst_multiplication, multiplication, left_rotation, right_rotation, decryption
+241145, 438, 1267, 3619, 5287, 410058, 272149, 246294, 24863
