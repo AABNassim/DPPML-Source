@@ -10,20 +10,31 @@
 
 using namespace std;
 
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
+
 LogisticRegression::LogisticRegression(void) {
     alpha = 1;
     th = 0.5;
-    d = 10;
-    m = 128;
-    dataset_name = "Edin";
-    epochs = 30;
+    d = 197;
+    m = 10000;
+    dataset_name = "MNIST";
+    epochs = 50;
     dt = new DatasetReader(datasets_path + dataset_name + "/", 2, d);
     for (int j = 0; j < d; j++) {
-        w.push_back(0);
+        //w.push_back(0.0);
+        w.push_back(fRand(-4, 4));
+        cout << w[j] << ", ";
     }
+    cout << " " << endl;
+
     train_records = dt->read_all_train_records();
     test_records = dt->read_all_test_records();
 }
+
 
 double LogisticRegression::sigmoid(double x) {
     return 1.0 / (1.0 + exp(-x));
@@ -89,29 +100,62 @@ int LogisticRegression::approx_predict(Record* r) {
     return label;
 }
 
-void LogisticRegression::approx_fit() {
-    // Read the hole data set
-    //int m = train_records.size();
-
-    for (int j = 0; j < d; j++) {
-        w[j] = 0.0;
+double LogisticRegression::approx_sigmoid(double x, int degree) {
+    if (degree == 3) {
+        return approx_sigmoid_deg3(x);
     }
+    if (degree == 5) {
+        return approx_sigmoid_deg5(x);
+    }
+    return approx_sigmoid_deg7(x);
+}
 
+
+void LogisticRegression::approx_fit() {
+    /*for (int j = 0; j < d; j++) {
+        w[j] = 0.0;
+    }*/
 
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
 
     std::ostringstream oss;
 
-    oss << std::put_time(&tm, "%Y-%m-%d %H-%M");
-    auto grads_file_name = "PLAIN_APPROX_GRADS_" + oss.str();
-    auto weights_file_name = "PLAIN_APPROX_WEIGHTS_" + oss.str();
+    oss << std::put_time(&tm, "%Y-%m-%d %H-%M-%S");
+    string folder_name = oss.str();
+    auto config_file_name = "CONFIG.txt";
+    auto grads_file_name = "GRADS.txt";
+    auto weights_file_name = "WEIGHTS.txt";
 
+    auto path = "../LOGS/" + dataset_name + "/APPROX_LR/" + folder_name + "/";
+
+    ofstream config_log_file;
     ofstream grads_log_file;
     ofstream weights_log_file;
 
-    grads_log_file.open(grads_file_name);
-    weights_log_file.open(weights_file_name);
+    if (mkdir(path.c_str(), 0777) == -1)
+        cerr << "Error :  " << strerror(errno) << endl;
+    else
+        cout << "Directory created";
+
+    grads_log_file.open(path + grads_file_name);
+    weights_log_file.open(path + weights_file_name);
+    config_log_file.open(path + config_file_name);
+
+    config_log_file << " -------------------------- Dataset -----------------------------" << endl;
+    config_log_file << "dataset = " << dataset_name << endl;
+    config_log_file << "m = " << m << endl;
+    config_log_file << "d = " << d << endl;
+    config_log_file << "classes = " << class_number << endl;
+
+
+    config_log_file << " -------------------------- Logistic Regression -----------------------------" << endl;
+    config_log_file << "epochs = " << epochs << endl;
+    config_log_file << "alpha = " << alpha << endl;
+    config_log_file << "sigmoid_degree = " << sigmoid_degree << endl;
+
+    config_log_file.close();
+
 
     for (int e = 0; e < epochs; e++) {
         double grad[d];
@@ -124,15 +168,14 @@ void LogisticRegression::approx_fit() {
             for (int j = 0; j < d; j++) {
                 wx += w[j] * rcd->values[j];
             }
-            double sig = approx_sigmoid_deg5(wx);
-
+            double sig = approx_sigmoid(wx, sigmoid_degree);
             for (int j = 0; j < d; j++) {
                 grad[j] += (sig - rcd->label) * rcd->values[j];
             }
         }
         cout << "Gradient : " << e << endl;
         for (int j = 0; j < d; j++) {
-            grad[j] = grad[j] * alpha / (m);
+            grad[j] = grad[j] * alpha / m;
             w[j] -= grad[j];
             grads_log_file << -grad[j] << ", ";
         }
@@ -151,38 +194,47 @@ void LogisticRegression::approx_fit() {
 }
 
 void LogisticRegression::fit() {
-    // Read the hole data set
-    //train_records = dt->read_all_train_records();
-    //int m = train_records.size();
-
-    for (int j = 0; j < d; j++) {
-        w[j] = 0.0;
-    }
-
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
 
     std::ostringstream oss;
 
-    oss << std::put_time(&tm, "%Y-%m-%d %H-%M");
-    auto grads_file_name = "PLAIN_GRADS_" + oss.str();
-    auto weights_file_name = "PLAIN_WEIGHTS_" + oss.str();
+    oss << std::put_time(&tm, "%Y-%m-%d %H-%M-%S");
+    string folder_name = oss.str();
+    auto config_file_name = "CONFIG.txt";
+    auto grads_file_name = "GRADS.txt";
+    auto weights_file_name = "WEIGHTS.txt";
 
+    auto path = "../LOGS/" + dataset_name + "/EXACT_LR/" + folder_name + "/";
+
+    ofstream config_log_file;
     ofstream grads_log_file;
     ofstream weights_log_file;
 
-    grads_log_file.open(grads_file_name);
-    weights_log_file.open(weights_file_name);
+    if (mkdir(path.c_str(), 0777) == -1)
+        cerr << "Error :  " << strerror(errno) << endl;
+    else
+        cout << "Directory created";
 
+    grads_log_file.open(path + grads_file_name);
+    weights_log_file.open(path + weights_file_name);
+    config_log_file.open(path + config_file_name);
 
-    for (int i = 0; i < m; i++) {
-        Record* rcd = train_records[i];
-        //cout << "Record num " << rcd->id << ". Values: ";
-        //for (int j = 0; j < d; j++) {
-        //    cout << rcd->values[j] << " ";
-        //}
-        //cout << " Label: " << rcd->label << endl;
-    }
+    config_log_file << " -------------------------- Dataset -----------------------------" << endl;
+    config_log_file << "dataset = " << dataset_name << endl;
+    config_log_file << "m = " << m << endl;
+    config_log_file << "d = " << d << endl;
+    config_log_file << "classes = " << class_number << endl;
+
+    config_log_file << " -------------------------- Logistic Regression -----------------------------" << endl;
+    config_log_file << "epochs = " << epochs << endl;
+    config_log_file << "alpha = " << alpha << endl;
+
+    config_log_file.close();
+
+    //for (int j = 0; j < d; j++) {
+    //    w[j] = 0.0;
+    //}
 
     for (int e = 0; e < epochs; e++) {
         double grad[d];
@@ -216,8 +268,8 @@ void LogisticRegression::fit() {
 
         weights_log_file << " " << endl;
         cout << "Loss : " << loss() << endl;
-        ///cout << "" << endl;
     }
+
     grads_log_file.close();
     weights_log_file.close();
 }

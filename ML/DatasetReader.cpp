@@ -211,17 +211,17 @@ vector <Record*> DatasetReader::read_all_train_records() {
             }
             //cout << endl;
             int label = values.back();
-            //cout << "EUSSOUUUUUUUUU " << cpt << " : " << label << endl;
             //cout << "LOL" << endl;
 
             values.pop_back();
-            //cout << "HUH" << endl;
 
             delete[] dup;
             this->current_train_record++;
             //cout << "GNEUGNEU" << endl;
 
             Record* r = new Record(this->current_train_record, values, label);
+            //cout << r->values.size() << endl;
+            //r->print();
             //cout << "qssou" << endl;
 
             records.push_back(r);
@@ -274,7 +274,9 @@ vector <Record*> DatasetReader::read_all_test_records() {
             int label = std::atoi(label_line.c_str());
             this->current_train_record++;
             Record* r = new Record(this->current_train_record, values, label);
+            //r->print();
             records.push_back(r);
+
         }
     }
     else {

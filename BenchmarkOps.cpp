@@ -20,6 +20,9 @@ BenchmarkOps::BenchmarkOps() {
     long n = 1 << logn;
     long numThread = 2;
 
+
+    int l = 4;
+
     oss << std::put_time(&tm, "%Y-%m-%d %H-%M-%S");
     string folder_name = oss.str();
     auto dtpkc_file_name = "dtpkc.txt";
@@ -195,7 +198,7 @@ BenchmarkOps::BenchmarkOps() {
 
 
     cout << "Deserialization result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << decrypted_deserialized[i] << ' ';
     }
     cout << " " << endl;
@@ -302,8 +305,8 @@ BenchmarkOps::BenchmarkOps() {
 
 
     fhe_log_file << encryption_duration << ", " << cst_addition_duration << ", " << addition_duration << ", " <<
-    subtraction_duration << ", " << cst_multiplication_duration << ", " << multiplication_duration << ", " <<
-    left_rotation_duration << ", " << right_rotation_duration << ", " << decryption_duration << endl;
+                 subtraction_duration << ", " << cst_multiplication_duration << ", " << multiplication_duration << ", " <<
+                 left_rotation_duration << ", " << right_rotation_duration << ", " << decryption_duration << endl;
 
 
     complex<double> *dvecAdd = scheme.decrypt(secretKey, cipherAdd);
@@ -316,41 +319,41 @@ BenchmarkOps::BenchmarkOps() {
 
 
     cout << "FHE Addition result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecAdd[i] << ' ';
     }
     cout << " " << endl;
 
     cout << "FHE Constant Addition result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecConstAdd[i] << ' ';
     }
     cout << " " << endl;
 
 
     cout << "FHE Constant Multiplication result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecConstMul[i] << ' ';
     }
     cout << " " << endl;
 
 
     cout << "FHE Multiplication result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecMul[i] << ' ';
     }
     cout << " " << endl;
 
 
     cout << "FHE Left Rotation result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecLeftRot[i] << ' ';
     }
     cout << " " << endl;
 
 
     cout << "FHE Right Rotation result:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < l; ++i) {
         cout << dvecRightRot[i] << ' ';
     }
     cout << " " << endl;

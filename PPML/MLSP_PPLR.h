@@ -52,7 +52,7 @@ public:
     char *hello = "Hello from client";
     char buffer[1024] = {0};
     int csp_port = 8080;
-    char *csp_ip = "127.0.0.1";
+    char *csp_ip = "10.144.0.3";
 
     // Server role for the workers
     int server_mlsp_fd;
@@ -60,7 +60,7 @@ public:
     int port = 8100;
 
     // Cluster infos
-    int nb_workers = 4;
+    int nb_workers = 1;
     std::vector<int> workers_sockets;
 
     std::vector<struct sockaddr_in> addresses;
@@ -74,7 +74,7 @@ public:
     // FHE Crypto part
     long logp = 30; ///< Scaling Factor (larger logp will give you more accurate value)
     long logn = 10; ///< number of slot is 1024 (this value should be < logN in "src/Params.h")
-    long logq = 600; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
+    long logq = 450; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
     long n = 1 << logn;
 
     Ring ring;
@@ -130,8 +130,8 @@ public:
     int log_nb_rows = 6;
     int d = 10;
     int class_number = 2;
-    int sigmoid_degree = 7;
-    int nb_training_ciphers = 2;
+    int sigmoid_degree = 3;
+    int nb_training_ciphers = 8;
     int m = nb_rows * nb_training_ciphers;
 
 

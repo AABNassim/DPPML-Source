@@ -573,7 +573,7 @@ void MLSP_PPLR::pp_fit() {
     auto weights_file_name = "WEIGHTS.txt";
     auto duration_file_name = "DURATION.txt";
 
-    auto path = "../LOGS/" + dataset_name + "/PPLR/LOCAL/" + folder_name + "/";
+    auto path = "../LOGS/" + dataset_name + "/PPLR/CENTRALISED/" + folder_name + "/";
 
     ofstream config_log_file;
     ofstream grads_log_file;
@@ -627,7 +627,7 @@ void MLSP_PPLR::pp_fit() {
             c.real(0);
             encoded_grad[i] = c;
         }
-        scheme.encrypt(cipher_grad, encoded_grad, n, logp, logq - 7 * logp);
+        scheme.encrypt(cipher_grad, encoded_grad, n, logp, logq - 4 * logp - sigmoid_degree * logp);
 
         for (int i = 0; i < nb_training_ciphers; i++) {
             Ciphertext cipher_product;
@@ -643,7 +643,7 @@ void MLSP_PPLR::pp_fit() {
 
             Ciphertext cipher_dot_product_duplicated = sum_slots_reversed(cipher_dot_product, 0, log_nb_cols);
 
-            Ciphertext cipher_sig = pp_sigmoid_deg3(cipher_dot_product_duplicated);
+            Ciphertext cipher_sig = pp_sigmoid(cipher_dot_product_duplicated, sigmoid_degree);
 
             scheme.multAndEqual(cipher_sig, cipher_training_set[i]); // TODO : modify
             scheme.reScaleByAndEqual(cipher_sig, logp);
@@ -697,6 +697,7 @@ void MLSP_PPLR::pp_fit() {
         }
         cout << " " << endl;
     }
+    cout << "The hole training process took : " << total_duration / 1000.0 << "s" << endl;
     grads_log_file.close();
     weights_log_file.close();
     duration_log_file.close();
@@ -839,6 +840,8 @@ void MLSP_PPLR::pp_fit_local() {
         }
         cout << " " << endl;
     }
+    cout << "The hole training process took : " << total_duration / 1000.0 << "s" << endl;
+
     grads_log_file.close();
     weights_log_file.close();
     duration_log_file.close();
@@ -859,7 +862,7 @@ void MLSP_PPLR::pp_fit_distributed() {
     auto weights_file_name = "WEIGHTS.txt";
     auto duration_file_name = "DURATION.txt";
 
-    auto path = "../LOGS/" + dataset_name + "/PPLR/LOCAL/" + folder_name + "/";
+    auto path = "../LOGS/" + dataset_name + "/PPLR/DISTRIBUTED/" + folder_name + "/";
 
     ofstream config_log_file;
     ofstream grads_log_file;
@@ -939,8 +942,6 @@ void MLSP_PPLR::pp_fit_distributed() {
 
         cout << "Gradient n : " << e << endl;
 
-        //Ciphertext refreshed_grad = refresh_cipher_local(cipher_grad);
-
         Ciphertext refreshed_grad = refresh_cipher(cipher_grad);
         scheme.addAndEqual(cipher_model, refreshed_grad);
 
@@ -984,6 +985,7 @@ void MLSP_PPLR::pp_fit_distributed() {
     else
         puts("File successfully deleted");
 
+    cout << "The hole training process took : " << total_duration / 1000.0 << "s" << endl;
 
     weights_log_file.close();
     grads_log_file.close();
@@ -1046,7 +1048,7 @@ Ciphertext MLSP_PPLR::refresh_cipher_unsecure(Ciphertext c) {
     complex<double> * plaintext = scheme.decrypt(secretKey, *cipher_to_refresh);
 
     cout << "Plaintext value of the cipher to refresh:" << endl;
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < d; ++i) {
         cout << plaintext[i] << ' ';
     }
     cout << " " << endl;
@@ -1334,32 +1336,32 @@ Ciphertext MLSP_PPLR::pp_sigmoid_deg5(Ciphertext cipher_x) {
     scheme.mult(cipher_x_cube, cipher_square, cipher_x);
     scheme.reScaleByAndEqual(cipher_x_cube, logp);
 
-    cout << " CUBE " << endl;
+    /*cout << " CUBE " << endl;
     complex<double> *decrypted_x_cube = scheme.decrypt(secretKey, cipher_x_cube);
     for (int i = 0; i < n; i++) {
         cout << decrypted_x_cube[i] << ", ";
     }
-    cout << " " << endl;
+    cout << " " << endl;*/
 
     scheme.mult(cipher_x_four, cipher_x_cube, cipher_x);
     scheme.reScaleByAndEqual(cipher_x_four, logp);
 
-    cout << " FOUR " << endl;
+    /*cout << " FOUR " << endl;
     complex<double> *decrypted_x_four = scheme.decrypt(secretKey, cipher_x_four);
     for (int i = 0; i < n; i++) {
         cout << decrypted_x_four[i] << ", ";
     }
-    cout << " " << endl;
+    cout << " " << endl;*/
 
     scheme.mult(cipher_x_five, cipher_x_four, cipher_x);
     scheme.reScaleByAndEqual(cipher_x_five, logp);
 
-    cout << " FIVE " << endl;
+    /*cout << " FIVE " << endl;
     complex<double> *decrypted_x_five = scheme.decrypt(secretKey, cipher_x_five);
     for (int i = 0; i < n; i++) {
         cout << decrypted_x_five[i] << ", ";
     }
-    cout << " " << endl;
+    cout << " " << endl;*/
 
     scheme.multByConst(cipher_ax, cipher_x, sigmoid_coeffs_deg5[1], logp);
     scheme.reScaleByAndEqual(cipher_ax, logp);
