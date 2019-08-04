@@ -4,10 +4,15 @@
 
 #include "MLSP_PPLR.h"
 
-
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
 
 MLSP_PPLR::MLSP_PPLR() : secretKey(ring), scheme(secretKey, ring, false) {
 
+    SetNumThreads(numThread);
     // Deserialize DTPKC
 
     /*dtpkc.deserializeDtpkc("./");
@@ -33,14 +38,14 @@ MLSP_PPLR::MLSP_PPLR() : secretKey(ring), scheme(secretKey, ring, false) {
 
     // Once we have the keys, initialize the model
 
-    encoded_sigmoid_coeffs = new complex<double>[n]; // TODO : Useless ?
+    /*encoded_sigmoid_coeffs = new complex<double>[n]; // TODO : Useless ?
     for (int i = 0; i < sigmoid_degree; i++) {
         complex<double> c;
         c.imag(0);
         c.real(sigmoid_coeffs_deg3[i]);
         encoded_sigmoid_coeffs[i] = c;
     }
-    scheme.encrypt(cipher_sigmoid_coeffs, encoded_sigmoid_coeffs, n, logp, logq);
+    scheme.encrypt(cipher_sigmoid_coeffs, encoded_sigmoid_coeffs, n, logp, logq);*/
 
     // Model initialization
     complex<double> *encoded_model = new complex<double>[n];
@@ -50,6 +55,13 @@ MLSP_PPLR::MLSP_PPLR() : secretKey(ring), scheme(secretKey, ring, false) {
         c.real(0);
         encoded_model[i] = c;
     }
+
+    /*for (int i = 0; i < d; i++) {
+        complex<double> c;
+        c.imag(0);
+        c.real(fRand(-4, 4));
+        encoded_model[i] = c;
+    }*/
     scheme.encrypt(cipher_model, encoded_model, n, logp, logq);
 
 
@@ -427,18 +439,27 @@ void MLSP_PPLR::encrypt_dataset() {
         Ciphertext cipher_training_batch;
         vectorized_batch = new complex<double>[nb_slots];
         for (int j = 0; j < nb_rows; j++) {
-            Record *rcd = training_data[i * nb_rows + j];
-            for (int k = 0; k < d; k++) {
-                complex<double> c;
-                int label;
-                if (rcd->label == 0) {
-                    label = -1;
-                } else {
-                    label = 1;
+            if (i * nb_rows + j < m) {
+                Record *rcd = training_data[i * nb_rows + j];
+                for (int k = 0; k < d; k++) {
+                    complex<double> c;
+                    int label;
+                    if (rcd->label == 0) {
+                        label = -1;
+                    } else {
+                        label = 1;
+                    }
+                    c.imag(0);
+                    c.real(rcd->values[k] * label);
+                    vectorized_batch[j * nb_cols + k] = c;
                 }
-                c.imag(0);
-                c.real(rcd->values[k] * label);
-                vectorized_batch[j * nb_cols + k] = c;
+            } else {
+                for (int k = 0; k < d; k++) {
+                    complex<double> c;
+                    c.imag(0);
+                    c.real(0);
+                    vectorized_batch[j * nb_cols + k] = c;
+                }
             }
         }
         scheme.encrypt(cipher_training_batch, vectorized_batch, n, logp, logq);
@@ -610,6 +631,8 @@ void MLSP_PPLR::pp_fit() {
     config_log_file << "logq = " << logq << endl;
     config_log_file << "logN = " << logN << endl;
     config_log_file << "logQ = " << logQ << endl;
+    config_log_file << "nb_threads = " << numThread << endl;
+
 
     config_log_file.close();
 
@@ -677,25 +700,27 @@ void MLSP_PPLR::pp_fit() {
                 cout << "ERROR, could not send the cipher" << endl;
             }
         }
-
-        complex<double> * grad = scheme.decrypt(secretKey, cipher_grad);
-        for (int j = 0; j < 1; j++) {
-            for (int k = 0; k < d; k++) {
-                grads_log_file << grad[j * nb_cols + k].real() << ", ";
+        if (logging) {
+            complex<double> * grad = scheme.decrypt(secretKey, cipher_grad);
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    grads_log_file << grad[j * nb_cols + k].real() << ", ";
+                }
+                grads_log_file << "" << endl;
             }
-            grads_log_file << "" << endl;
-        }
-        cout << " " << endl;
+            cout << " " << endl;
 
-        complex<double> * weights = scheme.decrypt(secretKey, cipher_model);
+            complex<double> * weights = scheme.decrypt(secretKey, cipher_model);
 
-        for (int j = 0; j < 1; j++) {
-            for (int k = 0; k < d; k++) {
-                weights_log_file << weights[j * nb_cols + k].real() << ", ";
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    weights_log_file << weights[j * nb_cols + k].real() << ", ";
+                }
+                weights_log_file << "" << endl;
             }
-            weights_log_file << "" << endl;
+            cout << " " << endl;
         }
-        cout << " " << endl;
+
     }
     cout << "The hole training process took : " << total_duration / 1000.0 << "s" << endl;
     grads_log_file.close();
@@ -727,6 +752,7 @@ void MLSP_PPLR::pp_fit_local() {
     auto grads_file_name = "GRADS.txt";
     auto weights_file_name = "WEIGHTS.txt";
     auto duration_file_name = "DURATION.txt";
+    auto loss_file_name = "LOSS.txt";
 
     auto path = "../LOGS/" + dataset_name + "/PPLR/LOCAL/" + folder_name + "/";
 
@@ -734,6 +760,7 @@ void MLSP_PPLR::pp_fit_local() {
     ofstream grads_log_file;
     ofstream weights_log_file;
     ofstream duration_log_file;
+    ofstream loss_log_file;
 
     if (mkdir(path.c_str(), 0777) == -1)
         cerr << "Error :  " << strerror(errno) << endl;
@@ -744,6 +771,7 @@ void MLSP_PPLR::pp_fit_local() {
     weights_log_file.open(path + weights_file_name);
     config_log_file.open(path + config_file_name);
     duration_log_file.open(path + duration_file_name);
+    loss_log_file.open(path + loss_file_name);
 
 
     config_log_file << " -------------------------- Dataset -----------------------------" << endl;
@@ -765,6 +793,7 @@ void MLSP_PPLR::pp_fit_local() {
     config_log_file << "logq = " << logq << endl;
     config_log_file << "logN = " << logN << endl;
     config_log_file << "logQ = " << logQ << endl;
+    config_log_file << "nb_threads = " << numThread << endl;
 
     config_log_file.close();
 
@@ -821,30 +850,59 @@ void MLSP_PPLR::pp_fit_local() {
         duration_log_file << to_string(epoch_duration) << endl;
         total_duration += epoch_duration;
 
-        complex<double> * grad = scheme.decrypt(secretKey, cipher_grad);
-        for (int j = 0; j < 1; j++) {
-            for (int k = 0; k < d; k++) {
-                grads_log_file << grad[j * nb_cols + k].real() << ", ";
+        if (logging) {
+            complex<double> * grad = scheme.decrypt(secretKey, cipher_grad);
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    grads_log_file << grad[j * nb_cols + k].real() << ", ";
+                }
+                grads_log_file << "" << endl;
             }
-            grads_log_file << "" << endl;
-        }
-        cout << " " << endl;
+            cout << " " << endl;
 
-        complex<double> * weights = scheme.decrypt(secretKey, cipher_model);
+            complex<double> * weights = scheme.decrypt(secretKey, cipher_model);
 
-        for (int j = 0; j < 1; j++) {
-            for (int k = 0; k < d; k++) {
-                weights_log_file << weights[j * nb_cols + k].real() << ", ";
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    weights_log_file << weights[j * nb_cols + k].real() << ", ";
+                }
+                weights_log_file << "" << endl;
             }
-            weights_log_file << "" << endl;
+            cout << " " << endl;
+
+            // Check the loss
+            vector<double> w(d);
+            for (int k = 0; k < d; k++) {
+                w[k] = weights[k].real();
+            }
+            loss_log_file << loss(w) << endl;
         }
-        cout << " " << endl;
+
     }
     cout << "The hole training process took : " << total_duration / 1000.0 << "s" << endl;
 
     grads_log_file.close();
     weights_log_file.close();
     duration_log_file.close();
+    loss_log_file.close();
+}
+
+double MLSP_PPLR::loss(vector <double> w) {
+    double loss = 0.0;
+    DatasetReader *datasetReader = new DatasetReader(datasets_path + dataset_name + "/", class_number, d); // Hum
+    vector<Record*> train_records = datasetReader->read_all_train_records();
+    for (int i = 0; i < m; i++) {
+        Record* rcd = train_records[i];
+        double wx = 0.0;
+        for (int j = 0; j < d; j++) {
+            wx += w[j] * rcd->values[j];
+        }
+        double h = LogisticRegression::sigmoid(wx);
+        int y = rcd->label;
+        loss += -y * log(h) - (1 - y) * (1 - h);
+    }
+    loss /= m;
+    return loss;
 }
 
 void MLSP_PPLR::pp_fit_distributed() {
@@ -899,6 +957,8 @@ void MLSP_PPLR::pp_fit_distributed() {
     config_log_file << "logq = " << logq << endl;
     config_log_file << "logN = " << logN << endl;
     config_log_file << "logQ = " << logQ << endl;
+    config_log_file << "nb_threads = " << numThread << endl;
+
 
     config_log_file.close();
 
@@ -953,15 +1013,6 @@ void MLSP_PPLR::pp_fit_distributed() {
 
         SerializationUtils::writeCiphertext(cipher_model, (char *) updated_model_filename.c_str());
 
-        complex<double> * model = scheme.decrypt(secretKey, cipher_model);
-        for (int j = 0; j < 1; j++) {
-            for (int k = 0; k < d; k++) {
-                cout << model[j * nb_cols + k].real() << ", ";
-                weights_log_file << model[j * nb_cols + k].real() << ", ";
-            }
-            weights_log_file << "" << endl;
-        }
-        cout << " " << endl;
 
         for (int i = 0; i < nb_workers; i++) {
             if (send_file(workers_sockets[i], (char *) updated_model_filename.c_str())) {
@@ -969,6 +1020,18 @@ void MLSP_PPLR::pp_fit_distributed() {
             } else {
                 cout << "ERROR while sending the cipher" << endl;
             }
+        }
+
+        if (logging) {
+            complex<double> * model = scheme.decrypt(secretKey, cipher_model);
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    cout << model[j * nb_cols + k].real() << ", ";
+                    weights_log_file << model[j * nb_cols + k].real() << ", ";
+                }
+                weights_log_file << "" << endl;
+            }
+            cout << " " << endl;
         }
     }
 

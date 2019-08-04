@@ -34,6 +34,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <math.h>
+
 
 #include "../CRYPTO/DTPKC.h"
 #include "../CRYPTO/EvalAdd.h"
@@ -44,7 +46,7 @@ using namespace std::chrono;
 class MLSP_PPLR {
 public:
     //Meta
-    bool log = true;
+    bool logging = true;
 
     // Client side
     int csp_sock = 0, valread;
@@ -52,7 +54,7 @@ public:
     char *hello = "Hello from client";
     char buffer[1024] = {0};
     int csp_port = 8080;
-    char *csp_ip = "10.144.0.3";
+    char *csp_ip = "127.0.0.1";
 
     // Server role for the workers
     int server_mlsp_fd;
@@ -73,8 +75,8 @@ public:
 
     // FHE Crypto part
     long logp = 30; ///< Scaling Factor (larger logp will give you more accurate value)
-    long logn = 10; ///< number of slot is 1024 (this value should be < logN in "src/Params.h")
-    long logq = 450; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
+    long logn = 12; ///< number of slot is 1024 (this value should be < logN in "src/Params.h")
+    long logq = 300; ///< Ciphertext modulus (this value should be <= logQ in "scr/Params.h")
     long n = 1 << logn;
 
     Ring ring;
@@ -90,7 +92,6 @@ public:
 
 
     MLSP_PPLR();
-    //MLSP_LR(Scheme* scheme1, SecretKey* secretKey1);
 
     void send_message();
 
@@ -99,7 +100,6 @@ public:
     void test_send_file();
 
     void test_key_exchange();
-
 
     bool read_file(int sock, char *path);
 
@@ -120,19 +120,19 @@ public:
         // ------------------------------------ Logistic Regression --------------------------------------
 
 
-    long numThread = 5;
+    long numThread = 16;
     double alpha = 1;
-    int epochs = 30;
+    int epochs = 50;
     int nb_slots = n;
-    int nb_rows = 64;
+    int nb_rows = 256;
     int nb_cols = 16;
     int log_nb_cols = 4;
-    int log_nb_rows = 6;
+    int log_nb_rows = 8;
     int d = 10;
     int class_number = 2;
     int sigmoid_degree = 3;
-    int nb_training_ciphers = 8;
-    int m = nb_rows * nb_training_ciphers;
+    int nb_training_ciphers = 4;
+    int m = 1000;
 
 
     gmp_randstate_t randstate;
@@ -143,7 +143,7 @@ public:
     long dtpkc_scale_factor = pow(10, 6);
 
 
-    string dataset_name = "Edin";
+    string dataset_name = "MNIST";
     string datasets_path = "../DATA/Datasets/";
     vector<Ciphertext> cipher_training_set;
     Ciphertext cipher_model;
@@ -204,6 +204,8 @@ public:
     Ciphertext refresh_cipher_old(Ciphertext c);
 
     void pp_fit_distributed();
+
+    double loss(vector <double> w);
 
     };
 

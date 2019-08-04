@@ -10,23 +10,23 @@
 
 using namespace std;
 
-double fRand(double fMin, double fMax)
-{
-    double f = (double)rand() / RAND_MAX;
-    return fMin + f * (fMax - fMin);
-}
+
 
 LogisticRegression::LogisticRegression(void) {
     alpha = 1;
     th = 0.5;
-    d = 197;
+    /*d = 197;
     m = 10000;
     dataset_name = "MNIST";
-    epochs = 50;
+    epochs = 50;*/
+    d = 10;
+    m = 1000;
+    dataset_name = "Edin";
+    epochs = 150;
     dt = new DatasetReader(datasets_path + dataset_name + "/", 2, d);
     for (int j = 0; j < d; j++) {
-        //w.push_back(0.0);
-        w.push_back(fRand(-4, 4));
+        w.push_back(0.0);
+        //w.push_back(fRand(-4, 4));
         cout << w[j] << ", ";
     }
     cout << " " << endl;
@@ -112,10 +112,6 @@ double LogisticRegression::approx_sigmoid(double x, int degree) {
 
 
 void LogisticRegression::approx_fit() {
-    /*for (int j = 0; j < d; j++) {
-        w[j] = 0.0;
-    }*/
-
     auto t = std::time(nullptr);
     auto tm = *std::localtime(&t);
 
@@ -126,12 +122,15 @@ void LogisticRegression::approx_fit() {
     auto config_file_name = "CONFIG.txt";
     auto grads_file_name = "GRADS.txt";
     auto weights_file_name = "WEIGHTS.txt";
+    auto loss_file_name = "LOSS.txt";
 
     auto path = "../LOGS/" + dataset_name + "/APPROX_LR/" + folder_name + "/";
 
     ofstream config_log_file;
     ofstream grads_log_file;
     ofstream weights_log_file;
+    ofstream loss_log_file;
+
 
     if (mkdir(path.c_str(), 0777) == -1)
         cerr << "Error :  " << strerror(errno) << endl;
@@ -141,6 +140,8 @@ void LogisticRegression::approx_fit() {
     grads_log_file.open(path + grads_file_name);
     weights_log_file.open(path + weights_file_name);
     config_log_file.open(path + config_file_name);
+    loss_log_file.open(path + loss_file_name);
+
 
     config_log_file << " -------------------------- Dataset -----------------------------" << endl;
     config_log_file << "dataset = " << dataset_name << endl;
@@ -187,10 +188,11 @@ void LogisticRegression::approx_fit() {
         }
 
         weights_log_file << " " << endl;
-        cout << "Loss : " << loss() << endl;
+        loss_log_file << loss() << endl;
     }
     grads_log_file.close();
     weights_log_file.close();
+    loss_log_file.close();
 }
 
 void LogisticRegression::fit() {
@@ -204,12 +206,15 @@ void LogisticRegression::fit() {
     auto config_file_name = "CONFIG.txt";
     auto grads_file_name = "GRADS.txt";
     auto weights_file_name = "WEIGHTS.txt";
+    auto loss_file_name = "LOSS.txt";
 
     auto path = "../LOGS/" + dataset_name + "/EXACT_LR/" + folder_name + "/";
 
     ofstream config_log_file;
     ofstream grads_log_file;
     ofstream weights_log_file;
+    ofstream loss_log_file;
+
 
     if (mkdir(path.c_str(), 0777) == -1)
         cerr << "Error :  " << strerror(errno) << endl;
@@ -219,6 +224,8 @@ void LogisticRegression::fit() {
     grads_log_file.open(path + grads_file_name);
     weights_log_file.open(path + weights_file_name);
     config_log_file.open(path + config_file_name);
+    loss_log_file.open(path + loss_file_name);
+
 
     config_log_file << " -------------------------- Dataset -----------------------------" << endl;
     config_log_file << "dataset = " << dataset_name << endl;
@@ -231,10 +238,6 @@ void LogisticRegression::fit() {
     config_log_file << "alpha = " << alpha << endl;
 
     config_log_file.close();
-
-    //for (int j = 0; j < d; j++) {
-    //    w[j] = 0.0;
-    //}
 
     for (int e = 0; e < epochs; e++) {
         double grad[d];
@@ -267,11 +270,12 @@ void LogisticRegression::fit() {
         }
 
         weights_log_file << " " << endl;
-        cout << "Loss : " << loss() << endl;
+        loss_log_file << loss() << endl;
     }
 
     grads_log_file.close();
     weights_log_file.close();
+    loss_log_file.close();
 }
 
 
@@ -287,6 +291,7 @@ double LogisticRegression::loss() {
         int y = rcd->label;
         loss += -y * log(h) - (1 - y) * (1 - h);
     }
+    loss /= m;
     return loss;
 }
 

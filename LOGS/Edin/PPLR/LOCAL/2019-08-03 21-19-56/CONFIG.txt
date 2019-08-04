@@ -1,0 +1,17 @@
+ -------------------------- Dataset -----------------------------
+dataset = Edin
+m = 1000
+d = 10
+classes = 2
+ -------------------------- Logistic Regression -----------------------------
+epochs = 150
+alpha = 1
+sigmoid_degree = 3
+ -------------------------- Crypto -----------------------------
+slots = 4096
+nb_training_ciphers = 4
+logp = 30
+logq = 450
+logN = 13
+logQ = 1200
+nb_threads = 8

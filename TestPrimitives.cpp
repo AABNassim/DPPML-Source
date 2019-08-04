@@ -47,8 +47,9 @@ int main() {
 
     MLSP_PPLR *mlsp_pplr = new MLSP_PPLR();
     mlsp_pplr->encrypt_dataset();
-    mlsp_pplr->connect_to_csp();
-    mlsp_pplr->pp_fit();
+    mlsp_pplr->pp_fit_local();
+    //mlsp_pplr->connect_to_csp();
+    //mlsp_pplr->pp_fit();
     //mlsp_pplr->accept_workers_connections();
     //mlsp_pplr->pp_fit_distributed();
 
