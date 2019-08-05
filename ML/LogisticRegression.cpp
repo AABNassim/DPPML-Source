@@ -10,19 +10,30 @@
 
 using namespace std;
 
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
 
 
 LogisticRegression::LogisticRegression(void) {
-    alpha = 1;
+    alpha = 2.0;
     th = 0.5;
     /*d = 197;
     m = 10000;
     dataset_name = "MNIST";
     epochs = 50;*/
-    d = 10;
-    m = 1000;
-    dataset_name = "Edin";
-    epochs = 150;
+    d = 16;
+    m = 12500;
+    dataset_name = "NHANES3";
+    epochs = 1000;
+
+    /*d = 10;
+    m = 158;
+    dataset_name = "lbw";
+    epochs = 100;*/
+
     dt = new DatasetReader(datasets_path + dataset_name + "/", 2, d);
     for (int j = 0; j < d; j++) {
         w.push_back(0.0);
@@ -51,7 +62,7 @@ double LogisticRegression::approx_sigmoid_deg5(double x) {
 }
 
 double LogisticRegression::approx_sigmoid_deg7(double x) {
-    //if (x > 8)
+    //if (x > 2)
     //    cout << "Hum .. " << x << endl;
     x = x / 8.0;
     return sigmoid_coeffs_deg7[0] + sigmoid_coeffs_deg7[1] * x + sigmoid_coeffs_deg7[2] * x * x * x +
@@ -258,7 +269,7 @@ void LogisticRegression::fit() {
         }
         cout << "Gradient : " << e << endl;
         for (int j = 0; j < d; j++) {
-            grad[j] = grad[j] * alpha / (m);
+            grad[j] = grad[j] * alpha / m;
             w[j] -= grad[j];
             grads_log_file << -grad[j] << ", ";
         }

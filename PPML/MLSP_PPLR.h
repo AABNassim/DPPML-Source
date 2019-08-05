@@ -121,8 +121,8 @@ public:
 
 
     long numThread = 16;
-    double alpha = 1;
-    int epochs = 50;
+    double alpha = 1.0;
+    int epochs = 100;
     int nb_slots = n;
     int nb_rows = 256;
     int nb_cols = 16;
@@ -131,8 +131,8 @@ public:
     int d = 10;
     int class_number = 2;
     int sigmoid_degree = 3;
-    int nb_training_ciphers = 4;
-    int m = 1000;
+    int nb_training_ciphers = 1;
+    int m = 158;
 
 
     gmp_randstate_t randstate;
@@ -143,7 +143,7 @@ public:
     long dtpkc_scale_factor = pow(10, 6);
 
 
-    string dataset_name = "MNIST";
+    string dataset_name = "lbw";
     string datasets_path = "../DATA/Datasets/";
     vector<Ciphertext> cipher_training_set;
     Ciphertext cipher_model;

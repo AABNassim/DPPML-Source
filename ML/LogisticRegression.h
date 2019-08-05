@@ -20,9 +20,9 @@ class LogisticRegression {
 public:
     double alpha;
     vector<double> w;
-    int m = 1000;
+    int m = 12500;
     int m2 = 1024;
-    int d = 10;
+    int d = 16;
     double th;
     int sigmoid_degree = 7;
     int class_number = 2;
