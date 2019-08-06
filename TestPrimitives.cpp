@@ -1,17 +1,7 @@
-#include "HEAAN.h"
-#include "BENCHS/BENCHBuildingBlocks.h"
 #include <gmp.h>
 #include <vector>
-#include "ML/DatasetReader.h"
-#include "ML/LogisticRegression.h"
-#include "PPML/PPLogisticRegression.h"
-#include "CRYPTO/DTPKC.h"
-#include "CRYPTO/EvalAdd.h"
 
-#include "PPML/MLSP.h"
-#include "PPML/CSP.h"
 #include "PPML/MLSP_PPLR.h"
-#include "BenchmarkOps.h"
 
 using namespace std;
 using namespace NTL;
@@ -35,6 +25,7 @@ int main() {
     //LogisticRegression *model = new LogisticRegression();
     //model->approx_fit();
     //model->fit();
+    //model->test();
 
     //srand(42);
     //ZZ *z = new ZZ(1);
@@ -46,12 +37,12 @@ int main() {
     //SetSeed((const unsigned char *) id.c_str(), id.length());
 
     MLSP_PPLR *mlsp_pplr = new MLSP_PPLR();
-    mlsp_pplr->encrypt_dataset();
-    mlsp_pplr->pp_fit_local();
-    //mlsp_pplr->connect_to_csp();
+    //mlsp_pplr->encrypt_dataset();
+    //mlsp_pplr->pp_fit_local();
+    mlsp_pplr->connect_to_csp();
     //mlsp_pplr->pp_fit();
-    //mlsp_pplr->accept_workers_connections();
-    //mlsp_pplr->pp_fit_distributed();
+    mlsp_pplr->accept_workers_connections();
+    mlsp_pplr->pp_fit_distributed();
 
     //vector<double> x {-6.0, -5.0, -4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0};
     //mlsp_pplr->test_pp_sigmoid(x);

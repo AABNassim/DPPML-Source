@@ -54,7 +54,7 @@ public:
     char *hello = "Hello from client";
     char buffer[1024] = {0};
     int csp_port = 8080;
-    char *csp_ip = "127.0.0.1";
+    char *csp_ip = "10.144.0.3";
 
     // Server role for the workers
     int server_mlsp_fd;
@@ -120,19 +120,19 @@ public:
         // ------------------------------------ Logistic Regression --------------------------------------
 
 
-    long numThread = 16;
-    double alpha = 1.0;
-    int epochs = 100;
+    long numThread = 1;
+    double alpha = 2.0;
+    int epochs = 50;
     int nb_slots = n;
     int nb_rows = 256;
     int nb_cols = 16;
     int log_nb_cols = 4;
     int log_nb_rows = 8;
-    int d = 10;
+    int d = 16;
     int class_number = 2;
     int sigmoid_degree = 3;
-    int nb_training_ciphers = 1;
-    int m = 158;
+    int nb_training_ciphers = 48;
+    int m = 12288;
 
 
     gmp_randstate_t randstate;
@@ -143,7 +143,7 @@ public:
     long dtpkc_scale_factor = pow(10, 6);
 
 
-    string dataset_name = "lbw";
+    string dataset_name = "NHANES3";
     string datasets_path = "../DATA/Datasets/";
     vector<Ciphertext> cipher_training_set;
     Ciphertext cipher_model;

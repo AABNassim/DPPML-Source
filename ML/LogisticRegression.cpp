@@ -10,11 +10,11 @@
 
 using namespace std;
 
-double fRand(double fMin, double fMax)
+/*double fRand(double fMin, double fMax)
 {
     double f = (double)rand() / RAND_MAX;
     return fMin + f * (fMax - fMin);
-}
+}*/
 
 
 LogisticRegression::LogisticRegression(void) {

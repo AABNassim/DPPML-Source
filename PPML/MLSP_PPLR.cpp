@@ -4,6 +4,8 @@
 
 #include "MLSP_PPLR.h"
 
+#include <unistd.h>
+
 
 MLSP_PPLR::MLSP_PPLR() : secretKey(ring), scheme(secretKey, ring, false) {
 
@@ -113,7 +115,6 @@ void MLSP_PPLR::connect_to_csp() {
 }
 
 void MLSP_PPLR::accept_workers_connections() {
-
     if ((server_mlsp_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0)
     {
         perror("socket failed");
@@ -155,11 +156,69 @@ void MLSP_PPLR::accept_workers_connections() {
         cout << "Socket n " << i << " = " << worker_socket << endl;
     }
     cout << "Setup the sockets" << endl;
-    /*if (read_long(workers_sockets[1], &fifty_three)) {
+
+
+    //long fifty_three;
+    /*if (read_long(workers_sockets[0], &fifty_three)) {
         cout << "Got : " << fifty_three << endl;
     } else {
         cout << "Did not find the second number" << endl;
+    }*/
+
+    /*if (read_file(workers_sockets[0], "test.txt")) {
+        cout << "ge" << endl;
+    } else {
+        cout << "eups" << endl;
     }
+
+    unsigned int microseconds = 3000000;
+
+    usleep(microseconds);
+
+    complex<double> *mvec1 = new complex<double>[n];
+
+    for (int i = 0; i < n; ++i) {
+        complex<double> c;
+        c.real(1);
+        c.imag(0);
+        mvec1[i] = c;
+    }
+
+    Ciphertext cipher1;
+
+    scheme.encrypt(cipher1, mvec1, n, logp, logq);
+
+    SerializationUtils::writeCiphertext(cipher1, "wtf.txt");
+
+    usleep(microseconds);
+
+    Ciphertext *lol = SerializationUtils::readCiphertext("test.txt");
+    Ciphertext *bon = SerializationUtils::readCiphertext("test.txt");
+
+    Ciphertext *wtf = SerializationUtils::readCiphertext("wtf.txt");
+
+    complex<double> * plaintext_hihi = scheme.decrypt(secretKey, *lol);
+    complex<double> * plaintext_pler = scheme.decrypt(secretKey, *bon);
+
+    complex<double> * plaintext_wtf = scheme.decrypt(secretKey, *wtf);
+
+    cout << "Plaintext value of wtf:" << endl;
+    for (int i = 0; i < n; ++i) {
+        cout << plaintext_wtf[i] << ' ';
+    }
+    cout << " " << endl;
+
+    cout << "Plaintext value of pler:" << endl;
+    for (int i = 0; i < n; ++i) {
+        cout << plaintext_pler[i] << ' ';
+    }
+    cout << " " << endl;
+
+    cout << "Plaintext value of hihi:" << endl;
+    for (int i = 0; i < n; ++i) {
+        cout << plaintext_hihi[i] << ' ';
+    }
+    cout << " " << endl;
     if (read_long(workers_sockets[2], &twenty_two)) {
         cout << "Got : " << twenty_two << endl;
     } else {
@@ -231,6 +290,7 @@ bool MLSP_PPLR::send_file(int sock, char* path)
         }
         while (filesize > 0);
     }
+    fclose(f);
     return true;
 }
 
@@ -273,15 +333,17 @@ bool MLSP_PPLR::read_file(int sock, char* path)
         char buffer[1024];
         do
         {
+            //cout << "Current file size : " << filesize << endl;
             int num = (filesize < sizeof(buffer)) ?  filesize : sizeof(buffer);
             if (!read_data(sock, buffer, num))
                 return false;
             int offset = 0;
             do
             {
-                size_t written = fwrite(&buffer[offset], 1, num-offset, f);
-                if (written < 1)
+                size_t written = fwrite(&buffer[offset], 1, num - offset, f);
+                if (written < 1) {
                     return false;
+                }
                 offset += written;
             }
             while (offset < num);
@@ -289,6 +351,7 @@ bool MLSP_PPLR::read_file(int sock, char* path)
         }
         while (filesize > 0);
     }
+    fclose(f);
     return true;
 }
 
@@ -944,6 +1007,7 @@ void MLSP_PPLR::pp_fit_distributed() {
     config_log_file << "epochs = " << epochs << endl;
     config_log_file << "alpha = " << alpha << endl;
     config_log_file << "sigmoid_degree = " << sigmoid_degree << endl;
+    config_log_file << "nb_workers = " << nb_workers << endl;
 
     config_log_file << " -------------------------- Crypto -----------------------------" << endl;
     config_log_file << "slots = " << n << endl;
@@ -989,15 +1053,22 @@ void MLSP_PPLR::pp_fit_distributed() {
         for (int i = 0; i < nb_workers; i++) {
             string grad_filename = "worker" + to_string(i + 1) + "_grad.txt";
             Ciphertext *cipher_partial_grad = SerializationUtils::readCiphertext((char *) grad_filename.c_str());
+            /*complex<double> * partial_grad = scheme.decrypt(secretKey, *cipher_partial_grad);
+            for (int j = 0; j < 1; j++) {
+                for (int k = 0; k < d; k++) {
+                    cout << partial_grad [j * nb_cols + k].real() << ", ";
+                }
+            }
+            cout << " " << endl;*/
             scheme.addAndEqual(cipher_grad, *cipher_partial_grad);
         }
 
         scheme.multByConstAndEqual(cipher_grad, alpha /  m, logp);
-        scheme.reScaleByAndEqual(cipher_grad, logp);            //TODO: factor out
+        scheme.reScaleByAndEqual(cipher_grad, logp);
 
         cout << "Gradient n : " << e << endl;
 
-        Ciphertext refreshed_grad = refresh_cipher(cipher_grad);
+        Ciphertext refreshed_grad = refresh_cipher_local(cipher_grad); // TODO : change
         scheme.addAndEqual(cipher_model, refreshed_grad);
 
         end_timer = high_resolution_clock::now();
